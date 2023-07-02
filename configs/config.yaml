@@ -1,5 +1,10 @@
 prefix: 
   center: [153.2620833, -1.6147221]
+  v_sun: [12.9, 245.6, 7.78]
+  r_sun: 8.122
+  z_sun: 0.0208
+  distance: 86
+  v_r: 224.2
 
 data:
   xmin: 149.75

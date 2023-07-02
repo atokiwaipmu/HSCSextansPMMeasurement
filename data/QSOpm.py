@@ -9,7 +9,7 @@ from data.dataprocess import replace_inf_nan_dropna, compute_pm
 
 def main():
     base_dir = "/Users/akiratokiwa/workspace/Sextans_final/"
-    quaser_path = base_dir + "catalog/product/HSCS21a_SDSSQSO_PI.csv"
+    quaser_path = base_dir + "catalog/matched/matched_HSCS21a_SDSSQSO_PI.csv"
     gal_path = base_dir + "catalog/product/HSCS21a_PI_galaxy_cl.csv"
     output_path = base_dir + "catalog/product/HSCS21a_SDSSQSO_pm.csv"
     config_path = "/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/config.yaml"

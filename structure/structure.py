@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import emcee
 import os
 import yaml
 import argparse
