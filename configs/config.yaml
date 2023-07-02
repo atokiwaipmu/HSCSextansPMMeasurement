@@ -1,0 +1,36 @@
+prefix: 
+  center: [153.2620833, -1.6147221]
+
+data:
+  xmin: 149.75
+  xmax: 156.80
+  ymin: -2.50
+  ymax: 1.70
+  i_min: 18
+  i_max: 24
+  racol: "i_sdsscentroid_ra"
+  deccol: "i_sdsscentroid_dec"
+  pmracol: "pmra_cl"
+  pmraerrcol: "pmra_esterr"
+  pmdeccol: "pmdec_cl"
+  pmdecerrcol: "pmdec_esterr"
+  magcol: "i_psfflux_mag"
+
+process:
+  seed: 1234
+  nwalkers: 40
+  gridtick: 0.05
+  areatick: 0.025
+  magtick: 0.1
+  bootstraps: 100
+  max_timestep: 10000
+  r_core: 0.5
+  r_tidal: 1.5
+
+structure:
+  priormin: [149.75, -2.50, 0, 0, 0, 0]
+  priormax: [156.80, 1.70, 90, 1, 50, 150]
+
+PM:
+  priormin: [-1, -1, -10, -10]
+  priormax: [1, 1, 0, 0]
