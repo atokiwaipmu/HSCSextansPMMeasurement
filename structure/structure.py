@@ -1,15 +1,41 @@
-import pandas as pd
-import numpy as np
-import os
-import yaml
+"""
+This script performs analysis on astronomical data related to structures of celestial bodies.
+
+Author: Akira Tokiwa
+"""
+
 import argparse
 import json
-
+import os
 import sys
-sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
-from utils.utils import calarea, calR, proexpo, proplummer, proking, logprior, mcmc
+from typing import Tuple
 
-def loglikelihood(x, inputs, prefix, priorset,model="plum", verbose=False):
+import numpy as np
+import pandas as pd
+import yaml
+from scipy import interpolate, optimize
+
+# Append the path to the utils module
+sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
+
+from utils.utils import calarea, calR, proexpo, proplummer, proking, logprior, mcmc  # Import functions from the utils module
+
+
+def loglikelihood(x: np.ndarray, inputs: list, prefix: list, priorset: list, model: str = "plum", verbose: bool = False) -> float:
+    """
+    Compute the log-likelihood of a given model.
+
+    Args:
+        x: Array of model parameters.
+        inputs: List of inputs (ra, dec, Ntot).
+        prefix: List of prefix inputs (area, outer_nd).
+        priorset: List of priorsets.
+        model: The model type. Defaults to "plum".
+        verbose: If True, print additional information. Defaults to False.
+
+    Returns:
+        The computed log-likelihood.
+    """
     if model == "king":
         x0, y0, tmp_theta, eps, tmp_rh, tmp_rt= x
     else:
@@ -48,7 +74,23 @@ def loglikelihood(x, inputs, prefix, priorset,model="plum", verbose=False):
 
     return np.sum(np.log(frac * pm + sbg))
 
-def run_mcmc(priors, inputs, prefix, mcmc_type, max_n=10000, discard=2000, seed=1234, nwalkers=40):
+def run_mcmc(priors: list, inputs: list, prefix: list, mcmc_type: str, max_n: int = 10000, discard: int = 2000, seed: int = 1234, nwalkers: int = 40) -> np.ndarray:
+    """
+    Run a Markov Chain Monte Carlo (MCMC) simulation.
+
+    Args:
+        priors: List of priorsets.
+        inputs: List of inputs (ra, dec, Ntot).
+        prefix: List of prefix inputs (area, outer_nd).
+        mcmc_type: The type of MCMC.
+        max_n: Maximum number of iterations. Defaults to 10000.
+        discard: Number of iterations to discard. Defaults to 2000.
+        seed: Seed for random number generation. Defaults to 1234.
+        nwalkers: Number of walkers. Defaults to 40.
+
+    Returns:
+        The flattened chain of samples from the MCMC simulation.
+    """
     np.random.seed(seed)
     priorset = priors[0][mcmc_type], priors[1][mcmc_type]
     ndim = len(priorset[0])
@@ -57,7 +99,19 @@ def run_mcmc(priors, inputs, prefix, mcmc_type, max_n=10000, discard=2000, seed=
     flat_samples = sampler.get_chain(discard=discard, flat=True)
     return flat_samples
 
-def main(data_path, gal_path, distR_path, mid_dir, config_path, params_path, flag=False):
+def main(data_path: str, gal_path: str, distR_path: str, mid_dir: str, config_path: str, params_path: str, flag: bool = False) -> None:
+    """
+    Main function to perform the analysis on the data.
+
+    Args:
+        data_path: Path to the input CSV file for data.
+        gal_path: Path to the input CSV file for galaxies.
+        distR_path: Path to the input distR file.
+        mid_dir: Directory path to the intermediate files.
+        config_path: Path to the config file.
+        params_path: Path to the params file.
+        flag: If True, overwrite existing distR file. Defaults to False.
+    """
     ms_ccut = pd.read_csv(data_path)
     with open(config_path, "r") as f:
         config_dict = yaml.safe_load(f)
@@ -123,13 +177,13 @@ def main(data_path, gal_path, distR_path, mid_dir, config_path, params_path, fla
 
 if __name__ == '__main__':
     base_dir = "/Users/akiratokiwa/workspace/Sextans_final/"
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default=f'{base_dir}catalog/product/starall_HSCS21a_PI_ccut.csv')
-    parser.add_argument('--gal_path', type=str, default=f'{base_dir}catalog/product/HSCS21a_PI_galaxy_cl.csv')
-    parser.add_argument('--distR_path', type=str, default=f'{base_dir}params_estimated/ZdistR.txt')
-    parser.add_argument('--mid_dir', type=str, default=f'{base_dir}params_estimated/')
-    parser.add_argument('--config_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/config.yaml')
-    parser.add_argument('--params_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/params.json')
+    parser = argparse.ArgumentParser(description='Structure analysis')
+    parser.add_argument('--data_path', type=str, default=f'{base_dir}catalog/product/starall_HSCS21a_PI_ccut.csv', help='data directory')
+    parser.add_argument('--gal_path', type=str, default=f'{base_dir}catalog/product/HSCS21a_PI_galaxy_cl.csv', help='data directory')
+    parser.add_argument('--distR_path', type=str, default=f'{base_dir}params_estimated/ZdistR.txt', help='data directory')
+    parser.add_argument('--mid_dir', type=str, default=f'{base_dir}params_estimated/', help='data directory')
+    parser.add_argument('--config_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/config.yaml', help='config directory')
+    parser.add_argument('--params_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/params.json', help='config directory')
     parser.add_argument('--flag', type=bool, default=False)
     print("structure.py")
     main(**vars(parser.parse_args()))

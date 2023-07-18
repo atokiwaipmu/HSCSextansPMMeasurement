@@ -1,18 +1,43 @@
-import pandas as pd
-import numpy as np
-from scipy.optimize import curve_fit
-from scipy import interpolate
-import matplotlib.pyplot as plt
-import yaml
+"""
+This script performs member selection operations on astronomical data related to stars and galaxies.
+
+Author: Akira Tokiwa
+"""
+
 import argparse
 import json
 import os
-
 import sys
-sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
-from utils.utils import medians, calR, expo
+from typing import Tuple
 
-def plot_CMD(ms2, mg_cl, ms_core, CMD_func, giwidth, xL, img_path, config_dict):
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yaml
+from scipy import interpolate
+from scipy.optimize import curve_fit
+
+# Append the path to the utils module
+sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
+
+from utils.utils import calR, expo, medians  # Import functions from the utils module
+
+
+
+def plot_CMD(ms2: pd.DataFrame, mg_cl: pd.DataFrame, ms_core: pd.DataFrame, CMD_func: callable, giwidth: callable, xL: np.ndarray, img_path: str, config_dict: dict) -> None:
+    """
+    Plot the color-magnitude diagram (CMD).
+
+    Args:
+        ms2: DataFrame containing the ms2 data.
+        mg_cl: DataFrame containing the mg_cl data.
+        ms_core: DataFrame containing the ms_core data.
+        CMD_func: Function for CMD.
+        giwidth: Function for gi width.
+        xL: Array for x values.
+        img_path: Path where the image will be saved.
+        config_dict: Configuration dictionary.
+    """
     fig = plt.figure(figsize=(7, 5))
     ax0 = fig.add_axes([0, 0, 0.49, 1])
     ax0.scatter(ms2.gi, ms2.ic,color="black",alpha=0.1,s=2)
@@ -54,7 +79,18 @@ def plot_CMD(ms2, mg_cl, ms_core, CMD_func, giwidth, xL, img_path, config_dict):
     
     fig.savefig(img_path, bbox_inches="tight")
 
-def plot_giwidth(md_gierr, errs_gi, popt1, popt2, xL, img_path):
+def plot_giwidth(md_gierr: pd.DataFrame, errs_gi: pd.DataFrame, popt1: np.ndarray, popt2: np.ndarray, xL: np.ndarray, img_path: str) -> None:
+    """
+    Plot the gi width.
+
+    Args:
+        md_gierr: DataFrame containing the md_gierr data.
+        errs_gi: DataFrame containing the errs_gi data.
+        popt1: Array containing the optimal values for the parameters of popt1.
+        popt2: Array containing the optimal values for the parameters of popt2.
+        xL: Array for x values.
+        img_path: Path where the image will be saved.
+    """
     fig = plt.figure(figsize=(7, 4))
     ax1 = fig.add_axes([0, 0, 1, 1])
     ax1.scatter(xL,md_gierr, marker='^',s=20,color='tab:red')
@@ -72,7 +108,23 @@ def plot_giwidth(md_gierr, errs_gi, popt1, popt2, xL, img_path):
     ax1.set_xlim(19.5, 24.05)
     fig.savefig(img_path, bbox_inches="tight")
 
-def main(star_path, gal_path, attenuation_path, output_path, CMD_path, CMD_width_path, config_path, params_path):
+def main(star_path: str, gal_path: str, attenuation_path: str, output_path: str, CMD_path: str, CMD_width_path: str, config_path: str, params_path: str) -> int:
+    """
+    Main function to perform member selection operations on the data.
+
+    Args:
+        star_path: Path to the input CSV file for stars.
+        gal_path: Path to the input CSV file for galaxies.
+        attenuation_path: Path to the input CSV file for attenuation.
+        output_path: Path to the output CSV file.
+        CMD_path: Path to the color-magnitude diagram (CMD) file.
+        CMD_width_path: Path to the CMD width file.
+        config_path: Path to the config file.
+        params_path: Path to the params file.
+
+    Returns:
+        0 if the function runs successfully.
+    """
     ms2=pd.read_csv(star_path)
     with open(config_path, 'r') as stream:
         config_dict = yaml.safe_load(stream)
@@ -149,6 +201,5 @@ if __name__ == '__main__':
     parser.add_argument('--CMD_width_path', type=str, default=f'{base_dir}img/plots/CMD_width.pdf', help='data directory')
     parser.add_argument('--config_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/config.yaml', help='config directory')
     parser.add_argument('--params_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/params.json', help='config directory')
-    args = parser.parse_args()
     print("memberselection.py")
-    main(**vars(args))
+    main(**vars(parser.parse_args()))

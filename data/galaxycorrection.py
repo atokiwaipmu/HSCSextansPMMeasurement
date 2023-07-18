@@ -1,29 +1,80 @@
-import pandas as pd
-import numpy as np
-import multiprocessing as mp
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import yaml
-import argparse
+"""
+This script performs corrections on galaxy data. It reads in the data, applies corrections, computes new columns,
+and saves the updated data. It also generates a correction map plot.
 
+Author: Akira Tokiwa
+"""
+
+import argparse
 import os
 import sys
-sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
-from utils.utils import Zs, apply_async_pool, grid, cali_star_galerr
+from typing import Tuple
 
-def initialize_axes(fig, pos, title):
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
+import multiprocessing as mp
+import numpy as np
+import pandas as pd
+import yaml
+
+# Append the path to the utils module
+sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement")
+
+from utils.utils import Zs, apply_async_pool, grid, cali_star_galerr  # Import functions from the utils module
+
+
+def initialize_axes(fig: plt.Figure, pos: list, title: str) -> plt.Axes:
+    """
+    Initialize the axes for a plot.
+
+    Args:
+        fig: The figure object.
+        pos: The position of the axes.
+        title: The title for the axes.
+
+    Returns:
+        The axes object.
+    """
     ax = fig.add_axes(pos)
     ax.set_title(title, fontsize=16)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     return ax
 
-def draw_color_map(ax, xedges, yedges, Z, norms, cmap='RdYlBu'):
-    return ax.pcolormesh(xedges, yedges, Z, norm = norms, cmap=cmap)
 
-def plot_corrmap(Zsg, Zsg_cl, Zra_g, Zdec_g, img_path, xedges, yedges):
-    norms=colors.Normalize(vmin=-10, vmax=10)
-    fig = plt.figure(figsize=(14,5))
+def draw_color_map(ax: plt.Axes, xedges: np.ndarray, yedges: np.ndarray, Z: pd.DataFrame, norms: colors.Normalize, cmap: str = 'RdYlBu') -> plt.Axes:
+    """
+    Draw a color map on the axes.
+
+    Args:
+        ax: The axes object.
+        xedges: The x edges.
+        yedges: The y edges.
+        Z: The Z values.
+        norms: The normalization for the color map.
+        cmap: The color map. Defaults to 'RdYlBu'.
+
+    Returns:
+        The axes object with the color map.
+    """
+    return ax.pcolormesh(xedges, yedges, Z, norm=norms, cmap=cmap)
+
+
+def plot_corrmap(Zsg: pd.DataFrame, Zsg_cl: pd.DataFrame, Zra_g: pd.DataFrame, Zdec_g: pd.DataFrame, img_path: str, xedges: np.ndarray, yedges: np.ndarray) -> None:
+    """
+    Plot the correction map and save the figure.
+
+    Args:
+        Zsg: DataFrame containing the Zsg data.
+        Zsg_cl: DataFrame containing the Zsg_cl data.
+        Zra_g: DataFrame containing the Zra_g data.
+        Zdec_g: DataFrame containing the Zdec_g data.
+        img_path: Path where the image will be saved.
+        xedges: The x edges.
+        yedges: The y edges.
+    """
+    norms = colors.Normalize(vmin=-10, vmax=10)
+    fig = plt.figure(figsize=(14, 5))
 
     ax00 = initialize_axes(fig, [0, 0.5, 0.3, 0.5], "Relative Proper Motion(Before Correction)")
     ax01 = initialize_axes(fig, [0.3, 0.5, 0.3, 0.5], "Distortion Correction Map")
@@ -40,35 +91,42 @@ def plot_corrmap(Zsg, Zsg_cl, Zra_g, Zdec_g, img_path, xedges, yedges):
     mappable4 = draw_color_map(ax11, xedges, yedges, Zdec_g, norms)
     mappable5 = draw_color_map(ax12, xedges, yedges, Zsg_cl[2], norms)
 
-    ax00.set_ylabel("Dec [deg]",fontsize=16)
-    ax10.set_ylabel("Dec [deg]",fontsize=16)
+    ax00.set_ylabel("Dec [deg]", fontsize=16)
+    ax10.set_ylabel("Dec [deg]", fontsize=16)
 
     for ax in [ax10, ax11, ax12]:
-        ax.set_xlabel("RA [deg]",fontsize=16)
+        ax.set_xlabel("RA [deg]", fontsize=16)
 
-    ax00.text(150, 1.3, r"$\mu_{\alpha}$", size=24,
-            horizontalalignment="left",
-            verticalalignment="top")
+    ax00.text(150, 1.3, r"$\mu_{\alpha}$", size=24, horizontalalignment="left", verticalalignment="top")
+    ax10.text(150, 1.3, r"$\mu_{\delta}$", size=24, horizontalalignment="left", verticalalignment="top")
 
-    ax10.text(150, 1.3, r"$\mu_{\delta}$", size=24,
-            horizontalalignment="left",
-            verticalalignment="top")
-
-    fig.colorbar(mappable0,
-                aspect=40, shrink=0.6,
-                orientation='vertical', extend='both',cax=ax3)
+    fig.colorbar(mappable0, aspect=40, shrink=0.6, orientation='vertical', extend='both', cax=ax3)
 
     fig.savefig(img_path, bbox_inches='tight', pad_inches=0.05)
 
 
-def main(star_path, gal_path, attenuation_path, output_dir, img_path, config_path):
-    ms=pd.read_csv(star_path)
-    mg=pd.read_csv(gal_path)
-    m_ext=pd.read_csv(attenuation_path)
+def main(star_path: str, gal_path: str, attenuation_path: str, output_dir: str, img_path: str, config_path: str) -> int:
+    """
+    Main function to perform corrections on galaxy data.
+
+    Args:
+        star_path: Path to the input CSV file for stars.
+        gal_path: Path to the input CSV file for galaxies.
+        attenuation_path: Path to the input CSV file for attenuation.
+        output_dir: Directory path to the output CSV files.
+        img_path: Path where the image will be saved.
+        config_path: Path to the config file.
+
+    Returns:
+        0 if the function runs successfully.
+    """
+    ms = pd.read_csv(star_path)
+    mg = pd.read_csv(gal_path)
+    m_ext = pd.read_csv(attenuation_path)
     with open(config_path, 'r') as stream:
         config_dict = yaml.safe_load(stream)
-    xedges=np.arange(config_dict["data"]["xmin"], config_dict["data"]["xmax"], config_dict["process"]["gridtick"])
-    yedges=np.arange(config_dict["data"]["ymin"], config_dict["data"]["ymax"], config_dict["process"]["gridtick"])
+    xedges = np.arange(config_dict["data"]["xmin"], config_dict["data"]["xmax"], config_dict["process"]["gridtick"])
+    yedges = np.arange(config_dict["data"]["ymin"], config_dict["data"]["ymax"], config_dict["process"]["gridtick"])
     print(len(mg), len(ms))
 
     obs_date1 = 56980
@@ -78,27 +136,23 @@ def main(star_path, gal_path, attenuation_path, output_dir, img_path, config_pat
     ms2 = ms[ms.mjd_x != obs_date1].copy()
     mg2 = mg[mg.mjd_x != obs_date1].copy()
 
-    data_mg1 = apply_async_pool(8, grid,yedges, mg1, xedges, yedges)
+    data_mg1 = apply_async_pool(8, grid, yedges, mg1, xedges, yedges)
     Znum_g1, Zra_g1, Zdec_g1, Zrasem_g1, Zdecsem_g1 = Zs(data_mg1, "pmra", "pmdec")
-    data_mg2 = apply_async_pool(8, grid,yedges, mg2, xedges, yedges)
+    data_mg2 = apply_async_pool(8, grid, yedges, mg2, xedges, yedges)
     Znum_g2, Zra_g2, Zdec_g2, Zrasem_g2, Zdecsem_g2 = Zs(data_mg2, "pmra", "pmdec")
 
     # Save the data
     for name, df in [('Znum_g1', Znum_g1), ('Zra_g1', Zra_g1), ('Zdec_g1', Zdec_g1), ('Zrasem_g1', Zrasem_g1), ('Zdecsem_g1', Zdecsem_g1),
-                    ('Znum_g2', Znum_g2), ('Zra_g2', Zra_g2), ('Zdec_g2', Zdec_g2), ('Zrasem_g2', Zrasem_g2), ('Zdecsem_g2', Zdecsem_g2)]:
-            df.to_csv(f'{output_dir}{name}.csv', index=False)
-    
-    ms1_tmp=pd.concat(apply_async_pool(8, cali_star_galerr, yedges,
-                                    ms1, xedges, yedges, Zra_g1, Zdec_g1, Zrasem_g1, Zdecsem_g1))
-    ms2_tmp=pd.concat(apply_async_pool(8, cali_star_galerr,yedges,
-                                        ms2, xedges, yedges, Zra_g2, Zdec_g2, Zrasem_g2, Zdecsem_g2))
+                     ('Znum_g2', Znum_g2), ('Zra_g2', Zra_g2), ('Zdec_g2', Zdec_g2), ('Zrasem_g2', Zrasem_g2), ('Zdecsem_g2', Zdecsem_g2)]:
+        df.to_csv(f'{output_dir}{name}.csv', index=False)
+
+    ms1_tmp = pd.concat(apply_async_pool(8, cali_star_galerr, yedges, ms1, xedges, yedges, Zra_g1, Zdec_g1, Zrasem_g1, Zdecsem_g1))
+    ms2_tmp = pd.concat(apply_async_pool(8, cali_star_galerr, yedges, ms2, xedges, yedges, Zra_g2, Zdec_g2, Zrasem_g2, Zdecsem_g2))
 
     # Concatenate and clean the dataframes
-    msall = (
-        pd.concat([ms1_tmp, ms2_tmp])
-        .dropna(subset=["pmra_cl", "pmdec_cl", "pmra_galerr", "pmdec_galerr", "i_psfflux_mag", "gi"])
-        .merge(m_ext, on="# object_id")
-    )
+    msall = (pd.concat([ms1_tmp, ms2_tmp])
+              .dropna(subset=["pmra_cl", "pmdec_cl", "pmra_galerr", "pmdec_galerr", "i_psfflux_mag", "gi"])
+              .merge(m_ext, on="# object_id"))
 
     # Define new columns
     new_columns = {
@@ -123,14 +177,15 @@ def main(star_path, gal_path, attenuation_path, output_dir, img_path, config_pat
     # Write to csv
     msall.to_csv(output_dir + 'starall_HSCS21a_PI.csv', index=False)
 
-    data_sg = apply_async_pool(8, grid,yedges, msall, xedges, yedges)
+    data_sg = apply_async_pool(8, grid, yedges, msall, xedges, yedges)
     Zsg_cl = Zs(data_sg, config_dict["data"]["pmracol"], config_dict["data"]["pmdeccol"])
     Zsg = Zs(data_sg, "pmra", "pmdec")
-    Zra_g = pd.DataFrame(np.nanmean([Zra_g1,Zra_g2],axis=0))
-    Zdec_g = pd.DataFrame(np.nanmean([Zdec_g1,Zdec_g2],axis=0))
+    Zra_g = pd.DataFrame(np.nanmean([Zra_g1, Zra_g2], axis=0))
+    Zdec_g = pd.DataFrame(np.nanmean([Zdec_g1, Zdec_g2], axis=0))
     plot_corrmap(Zsg, Zsg_cl, Zra_g, Zdec_g, img_path, xedges, yedges)
 
     return 0
+
 
 if __name__ == '__main__':
     base_dir = "/Users/akiratokiwa/workspace/Sextans_final/"
@@ -141,5 +196,5 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', type=str, default=f'{base_dir}catalog/product/', help='output data directory')
     parser.add_argument('--img_path', type=str, default=f'{base_dir}img/plots/corrmap.png', help='output image directory')
     parser.add_argument('--config_path', type=str, default='/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/config.yaml', help='config directory')
-    print("galaxy correction")
+    print("Galaxy correction")
     main(**vars(parser.parse_args()))
