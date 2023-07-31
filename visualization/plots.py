@@ -1,3 +1,9 @@
+"""
+This script performs plotting of the results.
+
+Author: Akira Tokiwa
+Refined by: OpenAI's ChatGPT
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,12 +12,22 @@ import matplotlib.colors as colors
 import bisect
 from scipy.optimize import curve_fit
 import json
-
 import sys
 sys.path.append("/Users/akiratokiwa/Git/HSCSextansPMMeasurement/")
 from utils.utils import proplummer, proking, proexpo
 
 def plot_wedge(flat_samples, labels, img_path):
+    """
+    Plots a wedge plot using the corner library.
+
+    Args:
+        flat_samples (np.array): The flattened MCMC samples.
+        labels (list): List of labels for the plot.
+        img_path (str): Path to save the plot.
+
+    Returns:
+        None.
+    """
     fig = plt.figure(figsize=(7,7))
     corner.corner(flat_samples, labels=labels,
                            quantiles=[0.16, 0.5, 0.84],title_fmt= '.3f',
@@ -23,6 +39,23 @@ def plot_wedge(flat_samples, labels, img_path):
 
 
 def plot_rad(r_obs, bgr, popt, rads, errs, profits, bestfit_sxt,  img_path):
+    """
+    Plots the radial profile of the proper motions and number density.
+
+    Args:
+        r_obs (np.array): The radial data.
+        bgr (np.array): The background parameters.
+        popt (list): The optimized parameters for the profile fits.
+        rads (np.array): The radii.
+        errs (np.array): The errors.
+        profits (list): The profile fit functions.
+        bestfit_sxt (np.array): The best fit parameters for the Sextans.
+        img_path (str): Path to save the plot.
+
+    Returns:
+        None.
+    """
+    # Set up the figure and axes
     fig = plt.figure(figsize=(7, 10))
     ax0 = fig.add_axes([0, 0.33, 1, 0.33])
     rs, r_all, r_pmra, r_pmraerr, r_pmdec, r_pmdecerr, r_numd, r_numderr, n_MW, r_area = r_obs
@@ -30,6 +63,8 @@ def plot_rad(r_obs, bgr, popt, rads, errs, profits, bestfit_sxt,  img_path):
     rp, re, rc, rt = rads
     err_sxt, err_sxtMW = errs
     pfit, kfit, efit = profits
+
+    # Plot the data
     ax0.errorbar(r_all,
                 r_pmra,
                 yerr=r_pmraerr,
@@ -67,6 +102,7 @@ def plot_rad(r_obs, bgr, popt, rads, errs, profits, bestfit_sxt,  img_path):
                 markersize=5,
                 color='black')
 
+    # Set the scales
     ax0.set_xscale("log")
     ax1.set_xscale("log")
     ax2.set_xscale("log")
@@ -101,11 +137,28 @@ def plot_rad(r_obs, bgr, popt, rads, errs, profits, bestfit_sxt,  img_path):
             label=r"$\Sigma_b=$"+"{0:1.0f}".format(bgr[0])+r"[deg$^{-2}$]")
     ax2.legend(loc="lower left",fontsize=16)
 
+    # Save the figure
     fig.savefig(img_path, bbox_inches="tight")
 
 def plot_compare(bestfit_sxt, bestfit_sxt2d, err_sxt, err_sxt2d, img_path):
+    """
+    Plots a comparison of the proper motion results with previous works.
+
+    Args:
+        bestfit_sxt (np.array): The best fit parameters for the Sextans for 1D fit.
+        bestfit_sxt2d (np.array): The best fit parameters for the Sextans for 2D fit.
+        err_sxt (np.array): The errors for the Sextans for 1D fit.
+        err_sxt2d (np.array): The errors for the Sextans for 2D fit.
+        img_path (str): Path to save the plot.
+
+    Returns:
+        None.
+    """
+    # Set up the figure and axes
     fig = plt.figure(figsize=(7,7))
     ax = fig.add_axes([0, 0, 1, 1])
+
+    # Previous works
     ppmra = [-0.403,-0.373,-0.41,-0.40]
     ppmdec = [0.029,0.021,0.04,0.02]
     psigra = [0.021,0.019,0.01,0.01]
@@ -113,6 +166,7 @@ def plot_compare(bestfit_sxt, bestfit_sxt2d, err_sxt, err_sxt2d, img_path):
     pname = ["Li et al. (2021)","Martínez-García et al. (2021)","McConnachie & Venn (2020)", "Battaglia et al. (2022)"]
     pcolor = ["tab:grey",'tab:purple','tab:red', "tab:green"]
 
+    # This work
     rpmra = [bestfit_sxt[0], bestfit_sxt2d[0]]
     rpmdec = [bestfit_sxt[1], bestfit_sxt2d[1]]
     rsigra = [err_sxt[0], err_sxt2d[0]]
@@ -120,6 +174,7 @@ def plot_compare(bestfit_sxt, bestfit_sxt2d, err_sxt, err_sxt2d, img_path):
     rname = [r"this work(1d, $\mu_\mathrm{MW}$ fixed)",r"this work(2d, $\mu_\mathrm{MW}$ fixed)"]
     rcolor = ['tab:orange','tab:blue']
 
+    # Plot the data
     for i in range(len(ppmra)):  
         ax.errorbar(ppmra[i],
                     ppmdec[i],
@@ -140,16 +195,30 @@ def plot_compare(bestfit_sxt, bestfit_sxt2d, err_sxt, err_sxt2d, img_path):
                     markersize=16,
                     color=rcolor[i],label=rname[i])    
 
+    # Set the labels
     ax.set_xlabel(r"$\mu_\alpha$",fontsize=16)
     ax.set_ylabel(r"$\mu_\delta$",fontsize=16)
     ax.set_aspect('equal')
     ax.legend(loc="lower center", fontsize=12, ncol=3,bbox_to_anchor=(0.43, -0.1,), borderaxespad=-6,)
     ax.tick_params(axis='both')
+
+    # Save the figure
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1) 
     fig.savefig(img_path, bbox_inches="tight")
 
 def main():
+    """
+    Main function to plot the results.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+    """
+    # Set up the paths
     base_dir = "/Users/akiratokiwa/workspace/Sextans_final/"
+
     # Load the samples
     psamples = np.loadtxt(base_dir + "params_estimated/plum.txt")
     ksamples = np.loadtxt(base_dir + "params_estimated/king.txt")
@@ -161,12 +230,14 @@ def main():
     sample_2d_sxtMW = sample_2d.item().get("sxt_MW_free")
     sample_2d_sxt = sample_2d.item().get("sxt_free")
 
+    # Set up the labels
     plabels = [r"$\alpha_0$", r"$\delta_0$", r"$\theta$", r"$\epsilon$", r"$r_{p}$"]
     klabels = [r"$\alpha_0$", r"$\delta_0$", r"$\theta$", r"$\epsilon$", r"$r_{c}$", r"$r_{t}$"]
     elabels = [r"$\alpha_0$", r"$\delta_0$", r"$\theta$", r"$\epsilon$", r"$r_{exp}$"]
     smlabels =[ r"$\mu^\mathrm{sxt}_\alpha$",r"$\mu^\mathrm{sxt}_\delta$",r"$\mu^\mathrm{MW}_\alpha$",r"$\mu^\mathrm{MW}_\delta$"]
     slabels = [ r"$\mu^\mathrm{sxt}_\alpha$",r"$\mu^\mathrm{sxt}_\delta$"]
 
+    # Plot the wedges
     plot_wedge(psamples, plabels, base_dir + "img/plots/wedge_plum.png")
     plot_wedge(ksamples, klabels, base_dir + "img/plots/wedge_king.png")
     plot_wedge(esamples, elabels, base_dir + "img/plots/wedge_expo.png")
@@ -175,12 +246,16 @@ def main():
     plot_wedge(sample_2d_sxtMW, smlabels, base_dir + "img/plots/wedge_sxtMW2d.png")
     plot_wedge(sample_2d_sxt, slabels, base_dir + "img/plots/wedge_sxt2d.png")
 
+    # Load the radial data
     radials = np.load(base_dir + "params_estimated/numberdensity.npy", allow_pickle=True)
     rs, r_all, r_pmra, r_pmraerr, r_pmdec, r_pmdecerr, r_numd, r_numderr, n_MW, r_area = radials
 
+    # Load the parameters
     params_path = "/Users/akiratokiwa/Git/HSCSextansPMMeasurement/configs/params.json"
     with open(params_path) as f:
         params = json.load(f)
+
+    # Set up the parameters
     outer_nd = params["outer_nd"]
     rp = params["plum"]["bestfit"][-1]/60
     re = params["expo"]["bestfit"][-1]/60
@@ -196,6 +271,7 @@ def main():
     err_sxtMW = params["sxt_MW_free"]["bestfit_err_1d"]
     errs = err_sxt, err_sxtMW
 
+    # Define the profile fits
     def pfit(x,a):
         return a*proplummer(x,rp) + outer_nd  
 
@@ -206,18 +282,20 @@ def main():
         return a*proexpo(x,re) + outer_nd  
     profits = pfit, kfit, efit
 
+    # Fit the profiles
     poptp,pcovp = curve_fit(pfit, r_all,r_numd, sigma=r_numderr)
     tlimit = bisect.bisect(r_all,rt)
     poptk,pcovk = curve_fit(kfit, r_all[:tlimit],r_numd[:tlimit], sigma=r_numderr[:tlimit])
     popte,pcove = curve_fit(efit, r_all,r_numd, sigma=r_numderr)
     popt = [poptp, poptk, popte]
 
+    # Plot the radial profile
     img_path = base_dir + "img/plots/pm_radial_profile.pdf"
     plot_rad(radials, bgr, popt, rads, errs, profits, bestfit_sxt,  img_path)
 
+    # Plot the comparison
     img_path = base_dir + "img/plots/pm_compare.pdf"
     plot_compare(bestfit_sxt, bestfit_sxt2d, err_sxt, err_sxt2d, img_path)
-
 
 if __name__ == '__main__':
     main()
